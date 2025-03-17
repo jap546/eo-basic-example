@@ -1,5 +1,6 @@
 ## Background
 Example repo for mapping proxy urban development within Greater London using Sentinel-2 data.
+
 ---
 ## Getting started
 Install the python dependencies with `poetry`:
@@ -22,8 +23,10 @@ You can then work through the example notebook in `urban_development.ipynb`, whi
 - Loads up the median Red, Green, Blue, SWIR1.6 and SWIR2.2 bands from Sentinel-2
 - Calculates the Enhanced Normalised Difference Impervious Surfaces Index (ENDISI)
 - Delineates proxy urban development
+
 ---
 ## TODO
-1. Refactor EO download process into wider pydantic model
-2. Rerun analysis additional years to map urban change
-3. Explore examples for segmentation and classification of EO data
+- Refactor EO download process into wider pydantic model
+- Calculate geometric median instead of median
+- Rerun analysis over additional years to map urban change
+- Explore examples for segmentation and classification of EO data
