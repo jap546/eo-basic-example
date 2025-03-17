@@ -26,3 +26,4 @@ You can then work through the example notebook in `urban_development.ipynb`, whi
 ## TODO
 1. Refactor EO download process into wider pydantic model
 2. Rerun analysis additional years to map urban change
+3. Explore examples for segmentation and classification of EO data
