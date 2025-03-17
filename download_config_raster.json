@@ -1,0 +1,74 @@
+[
+  {
+    "folder": "earth_observation",
+    "datasets": [
+      {
+        "download_method": "stac_api",
+        "file_config": {
+          "title": "rgb"
+        },
+        "stac_config": {
+          "url": "https://planetarycomputer.microsoft.com/api/stac/v1",
+          "collections": [
+            "sentinel-2-l2a"
+          ],
+          "bbox": [
+            -0.510355887089289,
+            51.2867586581741,
+            0.334044062088371,
+            51.6918770231681
+          ],
+          "datetime": "2021-01-01/2021-12-31",
+          "query": {
+            "eo:cloud_cover": {
+              "lt": 1
+            }
+          }
+        },
+        "handler_config": {
+          "assets": [
+            "B04",
+            "B03",
+            "B02"
+          ],
+          "chunksize": 4096,
+          "resolution": 100,
+          "epsg": 32630
+        }
+      },
+      {
+        "download_method": "stac_api",
+        "file_config": {
+          "title": "swir"
+        },
+        "stac_config": {
+          "url": "https://planetarycomputer.microsoft.com/api/stac/v1",
+          "collections": [
+            "sentinel-2-l2a"
+          ],
+          "bbox": [
+            -0.510355887089289,
+            51.2867586581741,
+            0.334044062088371,
+            51.6918770231681
+          ],
+          "datetime": "2021-01-01/2021-12-31",
+          "query": {
+            "eo:cloud_cover": {
+              "lt": 1
+            }
+          }
+        },
+        "handler_config": {
+          "assets": [
+            "B11",
+            "B12"
+          ],
+          "chunksize": 4096,
+          "resolution": 200,
+          "epsg": 32630
+        }
+      }
+    ]
+  }
+]

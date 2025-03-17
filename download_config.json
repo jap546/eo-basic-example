@@ -1,0 +1,22 @@
+[
+  {
+    "folder": "boundaries",
+    "datasets": [
+      {
+        "download_method": "arcgis_geom_api",
+        "file_config": {
+          "url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/",
+          "file_ext": "parquet",
+          "write_to_disk": true
+        },
+        "handler_config": {
+          "filename": "Regions_December_2022_Boundaries_EN_BFC_V2",
+          "server": "ons",
+          "outfields": "RGN22CD, RGN22NM",
+          "format": "pgeojson",
+          "output_filename": "geom-region-codes_2022"
+        }
+      }
+    ]
+  }
+]
