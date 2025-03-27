@@ -11,8 +11,12 @@ from typing import Any, Optional, Tuple, Union
 from urllib.parse import urlencode
 
 import dask
+import numpy as np
 import pandas as pd
+import rasterio.features
 import requests
+import xarray as xr
+from dask import delayed
 from dask.distributed import Client
 from geopandas import GeoDataFrame
 from requests.adapters import HTTPAdapter
@@ -479,3 +483,27 @@ def load_eo_config(config_path: Path) -> list[dict]:
         }
         for folder in config_data
     ]
+
+
+def rasterize_geometry(gdf: GeoDataFrame, template_da: xr.DataArray) -> xr.DataArray:
+    """Rasterizes a GeoDataFrame geometry to match a DataArray's shape and transform."""
+    shapes = [(geom, 1) for geom in gdf.geometry]
+    transform = template_da.rio.transform()
+    out_shape = template_da.rio.shape
+
+    mask = rasterio.features.rasterize(
+        shapes, out_shape=out_shape, transform=transform, fill=0, dtype=np.uint8
+    )
+
+    return xr.DataArray(
+        mask,
+        coords={"y": template_da.y, "x": template_da.x},
+        dims=("y", "x"),
+        name="mask",
+    )
+
+
+@delayed
+def make_mask(gdf: GeoDataFrame, template_da: xr.DataArray):  # noqa: ANN201
+    """Delayed wrapper around rasterize_geometry."""
+    return rasterize_geometry(gdf, template_da)
