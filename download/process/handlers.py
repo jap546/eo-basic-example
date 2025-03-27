@@ -175,8 +175,6 @@ class ArcgisGeomHandler(BaseModel, DownloadHandler):
 # TO DO: refactor into wider pydantic model
 def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
     """Function for downloading and processing EO data using STAC API."""
-    client = u.start_local_dask(n_workers=4, mem_safety_margin="1GB")
-
     year = dataset.stac_config.datetime.split("/")[0][:4]
 
     raw_output_path = u.generate_data_path(
@@ -245,8 +243,6 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
         tiled=True,
         lock=Lock("rio"),
     )
-
-    client.close()
 
     return {
         "Created raw composite": raw_output_path,
