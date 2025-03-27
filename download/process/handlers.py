@@ -10,11 +10,8 @@ import numpy as np
 import pandas as pd
 import planetary_computer
 import pystac_client
-import rasterio.features
-import rioxarray as rio
 import stackstac
 import xarray as xr
-from dask import delayed
 from dask.distributed import Lock
 from pydantic import BaseModel, field_validator
 
@@ -196,11 +193,6 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
         filters=[("CAUTH24CD", "=", "E47000001")],
     ).to_crs(dataset.handler_config.epsg)
 
-    # gdf = gpd.read_parquet(
-    #     Paths.RAW_DATA_DIR / "boundaries" / "geom-region-codes_2022.parquet",
-    #     filters=[("RGN22CD", "=", "E12000007")],
-    # ).to_crs(dataset.handler_config.epsg)
-
     stac_client = pystac_client.Client.open(
         url=str(dataset.stac_config.url), modifier=planetary_computer.sign_inplace
     )
@@ -216,19 +208,6 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
 
     print(f"Number of items found for {year}: {len(items)}")
 
-    # data = (
-    #     stackstac.stack(
-    #         items,
-    #         assets=dataset.handler_config.assets,
-    #         chunksize=2048,
-    #         resolution=dataset.handler_config.resolution,
-    #         epsg=dataset.handler_config.epsg,
-    #     )
-    #     .rio.clip(gdf.geometry.buffer(1000), all_touched=True)
-    #     .where(lambda x: x > 0, other=np.nan)  # sentinel-2 uses 0 as nodata
-    #     .assign_coords(band=lambda x: x.common_name.rename("band"))
-    # )
-
     data = (
         stackstac.stack(
             items,
@@ -237,45 +216,20 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
             resolution=dataset.handler_config.resolution,
             epsg=dataset.handler_config.epsg,
         )
-        .where(lambda x: x > 0, other=np.nan)  # sentinel-2 uses 0 as nodata
+        .where(lambda x: x > 0, other=np.nan) # sentinel-2 uses 0 as nodata
         .assign_coords(band=lambda x: x.common_name.rename("band"))
     )
 
     composite = data.median(dim="time", keep_attrs=True)
 
-    def rasterize_geometry(gdf, template_da):
-        """Rasterizes a GeoDataFrame geometry to match a DataArray's shape and transform."""
-        shapes = [(geom, 1) for geom in gdf.geometry]
-        transform = template_da.rio.transform()
-        out_shape = template_da.rio.shape
+    delayed_mask = u.make_mask(gdf, data.isel(time=0, band=0))
 
-        mask = rasterio.features.rasterize(
-            shapes, out_shape=out_shape, transform=transform, fill=0, dtype=np.uint8
-        )
-
-        return xr.DataArray(
-            mask,
-            coords={"y": template_da.y, "x": template_da.x},
-            dims=("y", "x"),
-            name="mask",
-        )
-
-    @delayed
-    def make_mask(gdf, template_da):
-        """Delayed wrapper around rasterize_geometry"""
-        return rasterize_geometry(gdf, template_da)
-
-    # Defer the rasterization
-    delayed_mask = make_mask(gdf, data.isel(time=0, band=0))
-
-    # Turn delayed result into Dask array
     mask_array = da.from_delayed(
         delayed_mask,
         shape=(data.sizes["y"], data.sizes["x"]),
         dtype=np.uint8,
     )
 
-    # Wrap into DataArray with correct coordinates and dims
     mask_da = xr.DataArray(
         mask_array, coords={"y": data.y, "x": data.x}, dims=("y", "x"), name="mask"
     )
@@ -283,10 +237,6 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
     composite = composite.where(mask_da == 1)
 
     composite = composite.compute()
-
-    # data = data.persist()
-
-    # data = data.median(dim="time").compute()
 
     composite = composite.rio.write_crs(dataset.handler_config.epsg)
 
