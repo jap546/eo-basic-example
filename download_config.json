@@ -1,0 +1,22 @@
+[
+  {
+    "folder": "boundaries",
+    "datasets": [
+      {
+        "download_method": "arcgis_geom_api",
+        "file_config": {
+          "url": "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/",
+          "file_ext": "parquet",
+          "write_to_disk": true
+        },
+        "handler_config": {
+          "filename": "Combined_Authorities_May_2023_Boundaries_EN_BFC",
+          "server": "ons",
+          "outfields": "CAUTH24CD, CAUTH24NM",
+          "format": "pgeojson",
+          "output_filename": "geom-mca-codes_2024"
+        }
+      }
+    ]
+  }
+]
