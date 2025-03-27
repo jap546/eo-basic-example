@@ -126,7 +126,7 @@ class Downloader:
         return download_status
 
 # TO DO: refactor into pydantic approach
-def eo_downloader():
+def eo_downloader() -> None:
     """Temporary wrapper to handle EO download config."""
     client = u.start_local_dask(n_workers=4, mem_safety_margin="1GB")
 
@@ -148,5 +148,5 @@ def eo_downloader():
 
             for k, v in result.items():
                 print(f"{k}: {v}")
-    
+
     client.shutdown()
