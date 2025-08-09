@@ -250,3 +250,28 @@ def validate_offset(offset: int, maximum: int) -> int:
         raise e.InvalidValueFormatOrContentError(msg)
 
     return offset
+
+
+def validate_format(format_value: str) -> str:
+    """Validation logic for format.
+
+    Checks that the format is not an empty value or contains a space.
+
+    Arguments:
+    ----------
+    format_value (str):
+        format value to be validated
+
+    Returns:
+    --------
+    int: validated format value
+    """
+    if u.empty_value(format_value):
+        msg = "Format must be populated"
+        raise e.EmptyValError(msg)
+
+    if u.string_contains_space(format_value):
+        msg = f"Format must not contain spaces. Format: '{format_value}'"
+        raise e.InvalidSpaceError(msg)
+
+    return format_value

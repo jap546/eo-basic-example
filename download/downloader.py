@@ -3,8 +3,6 @@ from pathlib import Path
 from typing import Any
 
 from download import Config
-from download.process import util as u
-from download.process.handlers import process_eo_data
 from download.process.util import archive_data, delete_data
 from download.setup.constants import Paths
 from download.setup.logger import download_logger as logger
@@ -58,13 +56,20 @@ class Downloader:
         return [file for file in existing_files_paths if file.stem not in self.required_files]
 
     def missing(self) -> list[str]:
-        """Return all required files that have not been downloaded yet.
-
-        Returns:
-        --------
-            list[str]: All file titles which have not been downloaded
         """
-        return list(set(self.required_files) - set(self.existing_files))
+        Return all required files that have not been downloaded yet.
+        This check is modified to handle filenames with dynamic suffixes (like Sentinel-2).
+        """
+        existing_stems = [
+            p.stem for p in self.raw_directory.glob("**/*.*") if "DS_Store" not in str(p)
+        ]
+
+        missing_files = []
+        for required in self.required_files:
+            is_present = any(existing.startswith(required) for existing in existing_stems)
+            if not is_present:
+                missing_files.append(required)
+        return missing_files
 
     def check(self) -> bool:
         """Check whether any files need deleting or downloading.
@@ -73,7 +78,7 @@ class Downloader:
         --------
         bool: Whether any files need deleting or downloading
         """
-        return self.required_files == self.existing_files
+        return not self.missing()
 
     def update(self) -> bool:
         """Iterate over the missing files and download them.
@@ -86,14 +91,15 @@ class Downloader:
         """
         download_status = True
 
-        if self.check():
+        if self.check() and not self.old_data:
             logger.info("Data is up to date")
             return download_status
 
-        if self.archive:
-            archive_data(self.old_data)
-        else:
-            delete_data(self.old_data)
+        if self.old_data:
+            if self.archive:
+                archive_data(self.old_data)
+            else:
+                delete_data(self.old_data)
 
         for missing_file in self.missing():
             file = self.config.find_file_config(missing_file)
@@ -103,35 +109,10 @@ class Downloader:
             status, data = file.execute(self.raw_directory)
 
             if status:
-                for filename, data_item in data.items():
-                    self.data[filename] = data_item
-
-            if not status:
+                if data:
+                    for filename, data_item in data.items():
+                        self.data[filename] = data_item
+            else:
                 download_status = False
 
         return download_status
-
-
-# TO DO: refactor into pydantic approach
-def eo_downloader() -> None:
-    """Temporary wrapper to handle EO download config."""
-    client = u.start_local_dask(n_workers=4, mem_safety_margin="1GB")
-
-    config_path = Path("download_config_raster.json")
-
-    folder_datasets = u.load_eo_config(config_path)
-
-    for folder_data in folder_datasets:
-        folder_name = folder_data["folder"]
-
-        raw_data_dir = Paths.RAW_DATA_DIR / folder_name
-
-        raw_data_dir.mkdir(parents=True, exist_ok=True)
-
-        for dataset in folder_data["datasets"]:
-            result = process_eo_data(dataset)
-
-            for k, v in result.items():
-                print(f"{k}: {v}")
-
-    client.shutdown()

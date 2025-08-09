@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from download import Config, Downloader
-from download.downloader import eo_downloader
 from download.setup.logger import download_logger as logger
 
 
@@ -39,9 +38,4 @@ def download_missing_files(attempts: int = 3) -> None:
         logger.critical("One or more files failed to download.")
         raise DownloadError
 
-    logger.info("Successfully downloaded vector data.")
-
-    # placeholder for EO download
-    logger.info("Downloading raster data.")
-    eo_downloader()
-    logger.info("Successfully downloaded raster data.")
+    logger.info("Successfully downloaded data.")

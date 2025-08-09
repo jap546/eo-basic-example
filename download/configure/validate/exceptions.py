@@ -76,3 +76,23 @@ class NonMatchingTitleColumnError(Exception):
 class InvalidGeomServerError(Exception):
     def __init__(self, msg: str) -> None:  # pragma: no cover
         super().__init__(msg)
+
+
+class SpacesInFileNameError(Exception):
+    def __init__(self, msg: str) -> None:  # pragma: no cover
+        super().__init__(msg)
+
+
+class ConflictingInputError(Exception):
+    def __init__(self, param1: str, param2: str):
+        super().__init__(f"Cannot use '{param1}' and '{param2}' at the same time.")
+
+
+class RequiredInputError(Exception):
+    def __init__(self, param1: str, param2: str):
+        super().__init__(f"If using '{param1}', you must also provide '{param2}'.")
+
+
+class BboxOrBoundaryError(Exception):
+    def __init__(self, msg: str) -> None:  # pragma: no cover
+        super().__init__(msg)

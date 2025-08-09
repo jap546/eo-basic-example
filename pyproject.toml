@@ -38,6 +38,7 @@ dependencies = [
     "dask-gateway>=2024.1.0,<2025.0.0",
     "planetary-computer>=1.0.0,<2.0.0",
     "stackstac[viz]>=0.5.1,<0.6.0",
+    "rioxarray>=0.19.0",
 ]
 
 [project.urls]
@@ -83,6 +84,9 @@ config_file = ".github/linters/.mypy.ini"
 target-version = "py312"
 line-length = 100
 fix = true
+exclude = [
+    ".ipynb"
+]
 
 [tool.ruff.lint]
 select = [
@@ -123,20 +127,20 @@ ignore = [
     "E731",
     "PLR0913",
 ]
-exclude = ["gunicorn_conf.py", "tests/", "scripts/"]
+exclude = ["gunicorn_conf.py", "tests/", "scripts/", "*.ipynb"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
 
 [tool.ruff.format]
 preview = true
+exclude = ["*.ipynb"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.isort]
 known-first-party = ["download"]
-
 
 [tool.pytest.ini_options]
 pythonpath = ["download"]

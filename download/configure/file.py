@@ -1,6 +1,4 @@
-from typing import Any
-
-from pydantic import BaseModel, HttpUrl, field_validator
+from pydantic import BaseModel, field_validator
 
 from download.configure.validate import validators as valid
 
@@ -56,39 +54,3 @@ class File(BaseModel):
     ) -> str:  # pylint: disable=no-self-argument, no-self-use
         """Validate the file extension."""
         return valid.validate_file_ext(ext)
-
-
-# Pydantic Models for EO Configuration
-class EOFileConfig(BaseModel):
-    """Base model for file config."""
-
-    folder: str
-    title: str
-
-
-class EOStacConfig(BaseModel):
-    """Base model for stac config."""
-
-    url: HttpUrl
-    collections: list[str]
-    bbox: list[float]
-    datetime: str
-    query: dict[str, Any]
-
-
-class EOHandlerConfig(BaseModel):
-    """Base model for handler config."""
-
-    assets: list[str]
-    chunksize: Any
-    resolution: int
-    epsg: int
-
-
-class EODatasetConfig(BaseModel):
-    """Base model for EO dataset."""
-
-    download_method: str
-    file_config: EOFileConfig
-    stac_config: EOStacConfig
-    handler_config: EOHandlerConfig

@@ -1,6 +1,4 @@
-import json
 import mimetypes
-import os
 import re
 from datetime import UTC, datetime
 from email.message import (
@@ -10,19 +8,13 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
-import dask
-import numpy as np
 import pandas as pd
-import rasterio.features
 import requests
-import xarray as xr
-from dask import delayed
-from dask.distributed import Client
 from geopandas import GeoDataFrame
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
-from download.configure.file import EODatasetConfig
+from download.sentinel2.config import CoordinateReferenceSystems
 from download.setup.constants import Paths
 from download.setup.logger import download_logger as logger
 
@@ -280,8 +272,12 @@ def iterative_geo_api_retrieve(
     gdf = GeoDataFrame()
 
     for ret in raw_data:
-        tmp_gdf = GeoDataFrame.from_features(ret, crs=4326)
-        gdf = GeoDataFrame(pd.concat([gdf, tmp_gdf], axis=0, ignore_index=True), crs=4326)
+        tmp_gdf = GeoDataFrame.from_features(ret, crs=CoordinateReferenceSystems.BNG.to_epsg_code())
+
+        gdf = GeoDataFrame(
+            pd.concat([gdf, tmp_gdf], axis=0, ignore_index=True),
+            crs=CoordinateReferenceSystems.BNG.to_epsg_code(),
+        )
 
     return gdf, True
 
@@ -347,145 +343,3 @@ def calc_years_in_range(year: str) -> list[int]:
         if len(split_year) == 1
         else list(range(int(split_year[0]), int(split_year[1]) + 1))
     )
-
-
-def get_total_available_memory(check_jupyter_hub: bool = True) -> int:
-    """Calculate how much memory is available.
-
-    1. Check MEM_LIMIT environment variable, set by jupyterhub
-    2. Use hardware information if that not set
-    """
-    if check_jupyter_hub:
-        mem_limit = os.environ.get("MEM_LIMIT", None)
-        if mem_limit is not None:
-            return int(mem_limit)
-
-    from psutil import virtual_memory
-
-    return virtual_memory().total
-
-
-def compute_memory_per_worker(
-    n_workers: int = 1,
-    mem_safety_margin: str | int | None = None,
-    memory_limit: str | int | None = None,
-) -> int:
-    """Calculate how much memory to assign per worker.
-
-    result can be passed into ``memory_limit=`` parameter of dask worker/cluster/client
-    """
-    from dask.utils import parse_bytes
-
-    if isinstance(memory_limit, str):
-        memory_limit = parse_bytes(memory_limit)
-
-    if isinstance(mem_safety_margin, str):
-        mem_safety_margin = parse_bytes(mem_safety_margin)
-
-    if memory_limit is None and mem_safety_margin is None:
-        total_bytes = get_total_available_memory()
-        # leave 500Mb or half of all memory if RAM is less than 1 Gb
-        mem_safety_margin = min(500 * (1024 * 1024), total_bytes // 2)
-    elif memory_limit is None:
-        total_bytes = get_total_available_memory()
-    elif mem_safety_margin is None:
-        total_bytes = memory_limit
-        mem_safety_margin = 0
-    else:
-        total_bytes = memory_limit
-
-    return (total_bytes - mem_safety_margin) // n_workers
-
-
-def start_local_dask(
-    n_workers: int = 1,
-    threads_per_worker: int | None = None,
-    mem_safety_margin: str | int | None = None,
-    memory_limit: str | int | None = None,
-    **kw: dict,
-) -> Client:
-    """Wrapper around ``distributed.Client(..)`` constructor that deals with memory better.
-
-    It also configures ``distributed.dashboard.link`` to go over proxy when operating
-    from behind jupyterhub.
-
-    :param n_workers: number of worker processes to launch
-    :param threads_per_worker: number of threads per worker, default is as many as there are CPUs
-    :param memory_limit: maximum memory to use across all workers
-    :param mem_safety_margin: bytes to reserve for the rest of the system, only applicable
-                              if ``memory_limit=`` is not supplied.
-
-    .. note::
-
-        if ``memory_limit=`` is supplied, it will be parsed and divided equally between workers.
-    """
-    # if dashboard.link set to default value and running behind hub, make dashboard link go via proxy  # noqa: E501
-    if dask.config.get("distributed.dashboard.link") == "{scheme}://{host}:{port}/status":
-        jup_prefix = os.environ.get("JUPYTERHUB_SERVICE_PREFIX")
-        if jup_prefix is not None:
-            jup_prefix = jup_prefix.rstrip("/")
-            dask.config.set({"distributed.dashboard.link": f"{jup_prefix}/proxy/{{port}}/status"})
-
-    memory_limit = compute_memory_per_worker(
-        n_workers=n_workers,
-        memory_limit=memory_limit,
-        mem_safety_margin=mem_safety_margin,
-    )
-
-    return Client(
-        n_workers=n_workers,
-        threads_per_worker=threads_per_worker,
-        memory_limit=memory_limit,
-        **kw,
-    )
-
-
-def load_eo_config(config_path: Path) -> list[dict]:
-    """Wrapper to open and load EO config."""
-    with open(config_path) as f:
-        config_data = json.load(f)
-
-    return [
-        {
-            "folder": folder["folder"],
-            "datasets": [
-                # Ensure the 'folder' is correctly passed in the 'file_config' and the 'title' is passed  # noqa: E501
-                EODatasetConfig(
-                    title=dataset["file_config"]["title"],  # Explicitly set title
-                    file_config={
-                        **dataset["file_config"],
-                        "folder": folder["folder"],
-                    },  # Set the folder
-                    stac_config=dataset["stac_config"],  # Pass stac_config as is
-                    handler_config=dataset["handler_config"],  # Pass handler_config as is
-                    download_method=dataset["download_method"],  # Pass download_method as is
-                )
-                for dataset in folder["datasets"]
-            ],
-        }
-        for folder in config_data
-    ]
-
-
-def rasterize_geometry(gdf: GeoDataFrame, template_da: xr.DataArray) -> xr.DataArray:
-    """Rasterizes a GeoDataFrame geometry to match a DataArray's shape and transform."""
-    shapes = [(geom, 1) for geom in gdf.geometry]
-    transform = template_da.rio.transform()
-    out_shape = template_da.rio.shape
-
-    mask = rasterio.features.rasterize(
-        shapes, out_shape=out_shape, transform=transform, fill=0, dtype=np.uint8
-    )
-
-    return xr.DataArray(
-        mask,
-        coords={"y": template_da.y, "x": template_da.x},
-        dims=("y", "x"),
-        name="mask",
-    )
-
-
-@delayed
-def make_mask(gdf: GeoDataFrame, template_da: xr.DataArray):
-    """Delayed wrapper around rasterize_geometry."""
-    return rasterize_geometry(gdf, template_da)
