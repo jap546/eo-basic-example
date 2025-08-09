@@ -1,8 +1,6 @@
-# ruff: noqa: D205, D415, S501
-
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 import dask.array as da
 import geopandas as gpd
@@ -33,15 +31,13 @@ class DownloadHandler(ABC):  # fmt: off
         Drives the logic for the 'find_file_config' method in the
         Config class, which queries these lists
         """
-        filenames: str = getattr(self, "output_filename", None)  # type: ignore
+        filenames: str = getattr(self, "output_filename", None)  # type: ignore  # noqa: PGH003
         return [filenames]
 
     @abstractmethod
     def execute(
         self, path: Path
-    ) -> Tuple[
-        bool, dict[str, bytes | pd.DataFrame | None]
-    ]:  # fmt: off pragma: no cover
+    ) -> tuple[bool, dict[str, bytes | pd.DataFrame | None]]:  # fmt: off pragma: no cover
         """Abstract execute method for DownloadHandler class."""
 
 
@@ -90,7 +86,7 @@ class ArcgisGeomHandler(BaseModel, DownloadHandler):
     file: File
     filename: str
     server: str
-    outfields: Optional[str] = ""
+    outfields: str | None = ""
     format: str
     offset: int = 0
     output_filename: str
@@ -127,9 +123,7 @@ class ArcgisGeomHandler(BaseModel, DownloadHandler):
         """Validate the format of the filename."""
         return valid.validate_output_filename(output_filename)
 
-    def execute(
-        self, path: Path
-    ) -> Tuple[bool, dict[str, bytes | pd.DataFrame | None]]:
+    def execute(self, path: Path) -> tuple[bool, dict[str, bytes | pd.DataFrame | None]]:
         """Interface with the ONS ARCGIS server to download a single file containing geometry data.
 
         Returns:
@@ -140,7 +134,7 @@ class ArcgisGeomHandler(BaseModel, DownloadHandler):
         """
         url = f"{self.file.url}{self.filename}{GEOMETRY_SERVERS[self.server]}"
 
-        params: dict[str, Union[str, int, None]] = {
+        params: dict[str, str | int | None] = {
             "where": "1=1",
             "timeRelation": "esriTimeRelationOverlaps",
             "geometryType": "esriGeometryEnvelope",
@@ -167,13 +161,13 @@ class ArcgisGeomHandler(BaseModel, DownloadHandler):
             filepath = u.generate_data_path(
                 path, self.file.folder, self.output_filename, self.file.file_ext
             )
-            gdf.to_parquet(filepath)  # type: ignore
+            gdf.to_parquet(filepath)  # type: ignore  # noqa: PGH003
 
         return (True, {self.output_filename: gdf})
 
 
 # TO DO: refactor into wider pydantic model
-def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
+def process_eo_data(dataset: EODatasetConfig) -> dict[str, Any]:
     """Function for downloading and processing EO data using STAC API."""
     year = dataset.stac_config.datetime.split("/")[0][:4]
 
@@ -214,7 +208,7 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
             resolution=dataset.handler_config.resolution,
             epsg=dataset.handler_config.epsg,
         )
-        .where(lambda x: x > 0, other=np.nan) # sentinel-2 uses 0 as nodata
+        .where(lambda x: x > 0, other=np.nan)  # sentinel-2 uses 0 as nodata
         .assign_coords(band=lambda x: x.common_name.rename("band"))
     )
 
@@ -250,5 +244,5 @@ def process_eo_data(dataset: EODatasetConfig) -> Dict[str, Any]:
 
 
 DOWNLOAD_HANDLERS: dict[str, DownloadHandler] = {
-    "arcgis_geom_api": ArcgisGeomHandler,  # type: ignore
+    "arcgis_geom_api": ArcgisGeomHandler,  # type: ignore  # noqa: PGH003
 }

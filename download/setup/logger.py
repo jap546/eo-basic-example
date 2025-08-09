@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Tuple
+from typing import Any
 
 from download.setup.constants import Paths
 
@@ -21,7 +21,7 @@ def setup_logger(name: str, log_file: str, level: Any = logging.INFO) -> logging
     return logger
 
 
-def loggers() -> Tuple[logging.Logger, ...]:
+def loggers() -> tuple[logging.Logger, ...]:
     Paths.LOGS_DIR.mkdir(exist_ok=True, parents=True)
     logger_names = [
         "download_logger",

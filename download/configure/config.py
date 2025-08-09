@@ -18,13 +18,12 @@ class Config:
     -----------
     config_file (list[dict[str, str | list[dict[str, str | dict[str, str | int | bool | dict[str, str | int]]]]]]):
         Dictionary object containing a 'plain text' download configuration
-    """
+    """  # noqa: E501
 
     config_file: list[
         dict[
             str,
-            str
-            | list[dict[str, str | dict[str, str | int | bool | dict[str, str | int]]]],
+            str | list[dict[str, str | dict[str, str | int | bool | dict[str, str | int]]]],
         ]
     ]
 
@@ -46,14 +45,14 @@ class Config:
         for folder_config in self.config_file:
             for dataset in folder_config["datasets"]:
                 file = File(
-                    folder=folder_config["folder"],  # type: ignore
-                    **dataset["file_config"],  # type: ignore
+                    folder=folder_config["folder"],  # type: ignore  # noqa: PGH003
+                    **dataset["file_config"],  # type: ignore  # noqa: PGH003
                 )
 
                 self.entries.append(
-                    DOWNLOAD_HANDLERS[dataset["download_method"]](  # type: ignore
+                    DOWNLOAD_HANDLERS[dataset["download_method"]](  # type: ignore  # noqa: PGH003
                         file=file,
-                        **dataset["handler_config"],  # type: ignore
+                        **dataset["handler_config"],  # type: ignore  # noqa: PGH003
                     )
                 )
 
@@ -84,7 +83,7 @@ class Config:
             url = entry.file.url
             if type(entry).__name__ == "ZipHandler":
                 if url in zip_urls:
-                    msg = f"You are downloading a zip file from url: '{url}' more than once. You can extract multiple files from the same zip file within a single config entry. Consult the documentation for more information."
+                    msg = f"You are downloading a zip file from url: '{url}' more than once. You can extract multiple files from the same zip file within a single config entry. Consult the documentation for more information."  # noqa: E501
                     warnings.warn(msg, stacklevel=1)
                 else:
                     zip_urls.append(url)
@@ -92,7 +91,7 @@ class Config:
                 "ArcgisGeomHandler",
             ]:
                 if url in urls:
-                    msg = f"You have more than one config entry pointing to the file located at: '{url}'. This will download multiple duplicate files."
+                    msg = f"You have more than one config entry pointing to the file located at: '{url}'. This will download multiple duplicate files."  # noqa: E501
                     warnings.warn(msg, stacklevel=1)
                 else:
                     urls.append(url)
@@ -113,7 +112,7 @@ class Config:
         for entry in self.entries:
             for filename in entry.filenames:
                 if filename in filenames:
-                    msg = f"You have more than one config entry generating a filename of: '{filename}'."
+                    msg = f"You have more than one config entry generating a filename of: '{filename}'."  # noqa: E501
                     warnings.warn(msg, stacklevel=1)
                 else:
                     filenames.append(filename)
@@ -136,4 +135,3 @@ class Config:
                 return entry
         err = f"Filename: {filename} does not exist in the config object"
         raise ValueError(err)
-

@@ -1,8 +1,7 @@
 import datetime
-from typing import Union
 
 
-def empty_value(val: Union[str, int, list[str], None]) -> bool:
+def empty_value(val: str | int | list[str] | None) -> bool:
     """Checks if a value is empty.
 
     Checks if a value is None, consists of space, or is 0.
@@ -24,7 +23,7 @@ def empty_value(val: Union[str, int, list[str], None]) -> bool:
     return str_val.isspace() or len(str_val) == 0
 
 
-def validate_year(year: Union[int, str]) -> bool:
+def validate_year(year: int | str) -> bool:
     """Checks if a year is valid.
 
     Checks whether a year is a valid integer and is between
@@ -43,7 +42,7 @@ def validate_year(year: Union[int, str]) -> bool:
 
     try:
         int_year = int(year)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
 
     return 1990 <= int_year <= curr_year

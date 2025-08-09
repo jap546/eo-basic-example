@@ -43,33 +43,19 @@ class Downloader:
     def existing_files(self) -> list[str]:
         """Property containing a list of all filenames of files already downloaded."""
         existing_files = list(self.raw_directory.glob("**/*.*"))
-        return sorted(
-            [
-                str(title.stem)
-                for title in existing_files
-                if "DS_Store" not in str(title)
-            ]
-        )
+        return sorted([str(title.stem) for title in existing_files if "DS_Store" not in str(title)])
 
     @property
     def required_files(self) -> list[str]:
         """Property containing filenames of all files required to be downloaded."""
-        return sorted(
-            [filename for entry in self.config.entries for filename in entry.filenames]
-        )
+        return sorted([filename for entry in self.config.entries for filename in entry.filenames])
 
     @property
     def old_data(self) -> list[Path]:
         """Property containing filnames of existing files that are no longer in the config."""
         existing_files = list(self.raw_directory.glob("**/*.*"))
-        existing_files_paths = [
-            file for file in existing_files if "DS_Store" not in str(file)
-        ]
-        return [
-            file
-            for file in existing_files_paths
-            if file.stem not in self.required_files
-        ]
+        existing_files_paths = [file for file in existing_files if "DS_Store" not in str(file)]
+        return [file for file in existing_files_paths if file.stem not in self.required_files]
 
     def missing(self) -> list[str]:
         """Return all required files that have not been downloaded yet.
@@ -125,6 +111,7 @@ class Downloader:
 
         return download_status
 
+
 # TO DO: refactor into pydantic approach
 def eo_downloader() -> None:
     """Temporary wrapper to handle EO download config."""
@@ -137,9 +124,7 @@ def eo_downloader() -> None:
     for folder_data in folder_datasets:
         folder_name = folder_data["folder"]
 
-        raw_data_dir = (
-            Paths.RAW_DATA_DIR / folder_name
-        )
+        raw_data_dir = Paths.RAW_DATA_DIR / folder_name
 
         raw_data_dir.mkdir(parents=True, exist_ok=True)
 

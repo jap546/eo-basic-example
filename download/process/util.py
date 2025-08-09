@@ -2,12 +2,12 @@ import json
 import mimetypes
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.message import (
     Message,  # per https://peps.python.org/pep-0594/#cgi:~:text=Replacements%20for%20the,message.Message%20are%3A
 )
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import Any
 from urllib.parse import urlencode
 
 import dask
@@ -56,7 +56,7 @@ def archive_data(to_archive: list[Path]) -> None:
     --------
     None
     """
-    time = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H:%M:%S")
+    time = datetime.now(UTC).strftime("%Y-%m-%d_%H:%M:%S")
     archive_path = Paths.ARCHIVE_DATA_DIR / time
     archive_path.mkdir(parents=True)
 
@@ -65,9 +65,7 @@ def archive_data(to_archive: list[Path]) -> None:
         file.rename(archive_path / file.name)
 
 
-def get_response_from_url(
-    url: str, timeout: int = 10
-) -> tuple[requests.Response | None, bool]:
+def get_response_from_url(url: str, timeout: int = 10) -> tuple[requests.Response | None, bool]:
     """Use requests.get to access the content of a specified URL.
 
     Uses the Retry class to handle intermittent failures and returns
@@ -102,16 +100,13 @@ def get_response_from_url(
     try:
         # Ensure the URL is a proper string and pass it directly into requests.get
         if isinstance(url, str):
-            resp: Optional[requests.Response] = session.get(url, timeout=timeout)
+            resp: requests.Response | None = session.get(url, timeout=timeout)
         else:
             logger.error(f"Invalid URL type: {type(url)}. Expected a string.")
             return None, False
 
         if resp is not None and resp.status_code >= 400:
-            error = (
-                f"Error: Received status code: {resp.status_code}, "
-                f"{resp.reason} for URL: {url}"
-            )
+            error = f"Error: Received status code: {resp.status_code}, {resp.reason} for URL: {url}"
             logger.error(error)
             return None, False
     except requests.exceptions.RequestException as e:
@@ -156,7 +151,7 @@ def validate_file(ext: str, resp: requests.Response) -> bool:
         return True
     m = Message()
     m["content-type"] = content_type
-    mimetype, _ = m.get_params()[0]  # type: ignore
+    mimetype, _ = m.get_params()[0]  # type: ignore  # noqa: PGH003
     extension = mimetypes.guess_extension(mimetype)
 
     if extension:
@@ -176,7 +171,7 @@ def validate_file(ext: str, resp: requests.Response) -> bool:
     return True
 
 
-def retrieve_file(url: str, file_ext: str) -> Tuple[requests.Response | None, bool]:
+def retrieve_file(url: str, file_ext: str) -> tuple[requests.Response | None, bool]:
     """Retrieve file from URL and undertake validation of the returned content.
 
     Arguments:
@@ -217,15 +212,13 @@ def encode_params(api_params: dict[Any, Any]) -> str:
     --------
     str: The encoded parameter values to append to the URL
     """
-    populated_params = {
-        key: value for key, value in api_params.items() if value is not None
-    }
+    populated_params = {key: value for key, value in api_params.items() if value is not None}
     return urlencode(populated_params)
 
 
 def iterative_geo_api_retrieve(
-    params: dict[str, Union[str, int, None]], offset: int, url: str, max_retries: int
-) -> Tuple[GeoDataFrame | None, bool]:
+    params: dict[str, str | int | None], offset: int, url: str, max_retries: int
+) -> tuple[GeoDataFrame | None, bool]:
     """Iteratively call a given api URL (specifically for geometry data).
 
     Uses the offset parameter to iteratively call subsequent batches of data
@@ -261,7 +254,7 @@ def iterative_geo_api_retrieve(
             if not status:
                 return None, False
 
-            ret_json = resp.json()  # type: ignore
+            ret_json = resp.json()  # type: ignore  # noqa: PGH003
 
             if "features" in ret_json:
                 break
@@ -269,7 +262,7 @@ def iterative_geo_api_retrieve(
             if retry == max_retries:
                 logger.error(
                     f"Failed to download data at position: {params['resultOffset']}-"
-                    f"{int(params['resultOffset']) + offset}"  # type: ignore
+                    f"{int(params['resultOffset']) + offset}"  # type: ignore  # noqa: PGH003
                 )
 
                 return None, False
@@ -288,9 +281,7 @@ def iterative_geo_api_retrieve(
 
     for ret in raw_data:
         tmp_gdf = GeoDataFrame.from_features(ret, crs=4326)
-        gdf = GeoDataFrame(
-            pd.concat([gdf, tmp_gdf], axis=0, ignore_index=True), crs=4326
-        )
+        gdf = GeoDataFrame(pd.concat([gdf, tmp_gdf], axis=0, ignore_index=True), crs=4326)
 
     return gdf, True
 
@@ -358,7 +349,7 @@ def calc_years_in_range(year: str) -> list[int]:
     )
 
 
-def get_total_available_memory(check_jupyter_hub: bool = True) -> int:  # noqa: FBT001, FBT002
+def get_total_available_memory(check_jupyter_hub: bool = True) -> int:
     """Calculate how much memory is available.
 
     1. Check MEM_LIMIT environment variable, set by jupyterhub
@@ -376,8 +367,8 @@ def get_total_available_memory(check_jupyter_hub: bool = True) -> int:  # noqa: 
 
 def compute_memory_per_worker(
     n_workers: int = 1,
-    mem_safety_margin: Optional[Union[str, int]] = None,
-    memory_limit: Optional[Union[str, int]] = None,
+    mem_safety_margin: str | int | None = None,
+    memory_limit: str | int | None = None,
 ) -> int:
     """Calculate how much memory to assign per worker.
 
@@ -408,9 +399,9 @@ def compute_memory_per_worker(
 
 def start_local_dask(
     n_workers: int = 1,
-    threads_per_worker: Optional[int] = None,
-    mem_safety_margin: Optional[Union[str, int]] = None,
-    memory_limit: Optional[Union[str, int]] = None,
+    threads_per_worker: int | None = None,
+    mem_safety_margin: str | int | None = None,
+    memory_limit: str | int | None = None,
     **kw: dict,
 ) -> Client:
     """Wrapper around ``distributed.Client(..)`` constructor that deals with memory better.
@@ -428,17 +419,12 @@ def start_local_dask(
 
         if ``memory_limit=`` is supplied, it will be parsed and divided equally between workers.
     """
-    # if dashboard.link set to default value and running behind hub, make dashboard link go via proxy
-    if (
-        dask.config.get("distributed.dashboard.link")
-        == "{scheme}://{host}:{port}/status"
-    ):
+    # if dashboard.link set to default value and running behind hub, make dashboard link go via proxy  # noqa: E501
+    if dask.config.get("distributed.dashboard.link") == "{scheme}://{host}:{port}/status":
         jup_prefix = os.environ.get("JUPYTERHUB_SERVICE_PREFIX")
         if jup_prefix is not None:
             jup_prefix = jup_prefix.rstrip("/")
-            dask.config.set(
-                {"distributed.dashboard.link": f"{jup_prefix}/proxy/{{port}}/status"}
-            )
+            dask.config.set({"distributed.dashboard.link": f"{jup_prefix}/proxy/{{port}}/status"})
 
     memory_limit = compute_memory_per_worker(
         n_workers=n_workers,
@@ -456,14 +442,14 @@ def start_local_dask(
 
 def load_eo_config(config_path: Path) -> list[dict]:
     """Wrapper to open and load EO config."""
-    with open(config_path) as f:  # noqa: PTH123
+    with open(config_path) as f:
         config_data = json.load(f)
 
     return [
         {
             "folder": folder["folder"],
             "datasets": [
-                # Ensure the 'folder' is correctly passed in the 'file_config' and the 'title' is passed
+                # Ensure the 'folder' is correctly passed in the 'file_config' and the 'title' is passed  # noqa: E501
                 EODatasetConfig(
                     title=dataset["file_config"]["title"],  # Explicitly set title
                     file_config={
@@ -471,12 +457,8 @@ def load_eo_config(config_path: Path) -> list[dict]:
                         "folder": folder["folder"],
                     },  # Set the folder
                     stac_config=dataset["stac_config"],  # Pass stac_config as is
-                    handler_config=dataset[
-                        "handler_config"
-                    ],  # Pass handler_config as is
-                    download_method=dataset[
-                        "download_method"
-                    ],  # Pass download_method as is
+                    handler_config=dataset["handler_config"],  # Pass handler_config as is
+                    download_method=dataset["download_method"],  # Pass download_method as is
                 )
                 for dataset in folder["datasets"]
             ],
@@ -504,6 +486,6 @@ def rasterize_geometry(gdf: GeoDataFrame, template_da: xr.DataArray) -> xr.DataA
 
 
 @delayed
-def make_mask(gdf: GeoDataFrame, template_da: xr.DataArray):  # noqa: ANN201
+def make_mask(gdf: GeoDataFrame, template_da: xr.DataArray):
     """Delayed wrapper around rasterize_geometry."""
     return rasterize_geometry(gdf, template_da)

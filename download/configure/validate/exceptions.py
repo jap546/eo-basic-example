@@ -72,6 +72,7 @@ class NonMatchingTitleColumnError(Exception):
     def __init__(self, msg: str) -> None:  # pragma: no cover
         super().__init__(msg)
 
+
 class InvalidGeomServerError(Exception):
     def __init__(self, msg: str) -> None:  # pragma: no cover
         super().__init__(msg)

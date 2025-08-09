@@ -185,9 +185,7 @@ def validate_api_strings(strings: list[str], title: str) -> None:
     """
     for string in strings:
         if u.empty_value(string):
-            msg = (
-                "Values provided for API parameters can no be empty. No value provided"
-            )
+            msg = "Values provided for API parameters can no be empty. No value provided"
             f" for a parameter for file: {title}."
             raise e.EmptyValError(msg)
 

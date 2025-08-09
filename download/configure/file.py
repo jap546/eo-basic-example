@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, HttpUrl, field_validator
 
@@ -31,7 +31,7 @@ class File(BaseModel):
     folder: str
     url: str
     file_ext: str
-    write_to_disk: Optional[bool] = False
+    write_to_disk: bool | None = False
 
     @field_validator("folder")
     @classmethod
@@ -57,6 +57,7 @@ class File(BaseModel):
         """Validate the file extension."""
         return valid.validate_file_ext(ext)
 
+
 # Pydantic Models for EO Configuration
 class EOFileConfig(BaseModel):
     """Base model for file config."""
@@ -69,16 +70,16 @@ class EOStacConfig(BaseModel):
     """Base model for stac config."""
 
     url: HttpUrl
-    collections: List[str]
-    bbox: List[float]
+    collections: list[str]
+    bbox: list[float]
     datetime: str
-    query: Dict[str, Any]
+    query: dict[str, Any]
 
 
 class EOHandlerConfig(BaseModel):
     """Base model for handler config."""
 
-    assets: List[str]
+    assets: list[str]
     chunksize: Any
     resolution: int
     epsg: int
