@@ -10,11 +10,37 @@
           "write_to_disk": true
         },
         "handler_config": {
-          "filename": "Combined_Authorities_May_2023_Boundaries_EN_BFC",
+          "filename": "CAUTH_MAY_2025_EN_BGC",
           "server": "ons",
-          "outfields": "CAUTH24CD, CAUTH24NM",
-          "format": "pgeojson",
-          "output_filename": "geom-mca-codes_2024"
+          "outfields": "CAUTH25CD, CAUTH25NM",
+          "format": "geojson",
+          "output_filename": "geom-cauth-codes_2025"
+        }
+      }
+    ]
+  },
+  {
+    "folder": "sentinel-2",
+    "datasets": [
+      {
+        "download_method": "sentinel2",
+        "file_config": {
+          "url": "https://planetarycomputer.microsoft.com/api/stac/v1",
+          "file_ext": "tif",
+          "write_to_disk": true
+        },
+        "handler_config": {
+          "boundary_path": "data/raw/boundaries/geom-cauth-codes_2025.parquet",
+          "boundary_filter_column": "CAUTH25CD",
+          "boundary_filter_values": [
+            "E47000001"
+          ],
+          "resolution": 20,
+          "start_date": "2023-01-01",
+          "end_date": "2024-12-31",
+          "max_cloud_cover": 25,
+          "resample_period": "annual",
+          "output_filename": "Manchester_annual"
         }
       }
     ]
