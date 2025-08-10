@@ -46,36 +46,6 @@ check: ## Run code quality tools.
 	@uvx nox
 	@echo "$GREEN)✅ All checks passed!$(ENDC)"
 
-.PHONY: test
-test: ## Test the code with pytest
-	@echo "$(PURPLE)--- 🧪 Running Tests ---$(ENDC)"
-	@echo "$(BLUE) > Running pytest with coverage report...$(ENDC)"
-	@uv run pytest --cov --cov-config=pyproject.toml --cov-report=xml --color=yes
-	@echo "$(GREEN)✅ Tests finished!$(ENDC)"
-
-.PHONY: build
-build: ## Build wheel file
-	@echo "$(ORANGE)--- 🧹 Cleaning Build Artifacts ---$(ENDC)"
-	@rm -rf dist
-	@echo "$(GREEN)✅ 'dist' directory removed.$(ENDC)"
-	@echo "$(PURPLE)--- 📦 Building Project ---$(ENDC)"
-	@echo "$(BLUE) > Creating wheel file...$(ENDC)"
-	@uv build --wheel
-	@echo "$(GREEN)✅ Build successful! Find the wheel in the '~/dist' directory.$(ENDC)"
-
-.PHONY: download-sedona
-download-sedona: ## Download required Sedona JARs
-	@echo "$(ORANGE)---  📥 Downloading Apache Sedona JARs ---$(ENDC)"
-	@echo "..."
-	@./download_sedona.sh
-	@echo "$(GREEN)✅ Apache Sedona dependencies downloaded, check the '~/deps/jars' directory.$(ENDC)"
-
-.PHONY: dbx-upload
-dbx-upload: download-sedona build ## Deploy artifacts to Databricks
-	@echo "$(ORANGE)---  🚀 Uploading artifacts to Databricks ---$(ENDC)"
-	@./deploy_artifacts.sh
-	@echo "$(GREEN)✅ Artifacts have been uploaded to Databricks.$(ENDC)"
-
 .PHONY: help
 help: ## Display this help message
 	@echo "$(BOLD)Makefile Commands:$(ENDC)"
