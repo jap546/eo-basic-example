@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 
+import numpy as np
 import pandas as pd
 import requests
+import xarray as xr
 from geopandas import GeoDataFrame
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -343,3 +345,85 @@ def calc_years_in_range(year: str) -> list[int]:
         if len(split_year) == 1
         else list(range(int(split_year[0]), int(split_year[1]) + 1))
     )
+
+
+def apply_gamma_correction(data: xr.DataArray) -> xr.DataArray:
+    y = 2.2
+    rgb = data.sel(band=["red", "green", "blue"])
+    rgb = rgb / rgb.max(dim=["band", "y", "x"])
+    return (rgb ** (1 / y)).clip(0, 1)
+
+
+def scale_rgb(
+    da: xr.DataArray,
+    bands: list[str] | None = None,
+    percentiles: list[int] | None = None,
+) -> np.ndarray | tuple[np.ndarray, xr.DataArray]:
+    """
+    Scales an RGB DataArray for plotting with contrast stretching and transparency.
+
+    Args:
+        da: Input DataArray with 'band', 'y', and 'x' coordinates.
+        bands: A list of three band names to use for RGB.
+        percentiles: The lower and upper percentiles for contrast stretching.
+        return_mask: If True, also returns the boolean mask of valid data as an
+                     numpy.ndarray.
+
+    Returns:
+        A NumPy RGBA array (H, W, 4) ready for plotting with values scaled to 0-1
+        and an alpha channel for transparency.
+        Or a tuple of (image_array, mask_data_array) if return_mask is True.
+    """
+    if percentiles is None:
+        percentiles = [2, 98]
+
+    if bands is None:
+        bands = ["red", "green", "blue"]
+
+    rgb_array = da.sel(band=bands).values
+
+    valid_data_mask = ~np.isnan(rgb_array[0])
+
+    vmin, vmax = np.nanpercentile(rgb_array, percentiles)
+
+    scaled_rgb = np.clip(rgb_array, vmin, vmax)
+
+    scaled_rgb = (scaled_rgb - vmin) / (vmax - vmin)
+
+    scaled_rgb_for_plot = np.transpose(scaled_rgb, (1, 2, 0))
+
+    h, w, _ = scaled_rgb_for_plot.shape
+
+    alpha_channel = np.ones((h, w, 1), dtype=scaled_rgb_for_plot.dtype)
+
+    alpha_channel[~valid_data_mask] = 0
+
+    rgba_image: np.ndarray = np.concatenate((scaled_rgb_for_plot, alpha_channel), axis=2)
+
+    return rgba_image
+
+
+def calculate_endisi(xds: xr.Dataset) -> xr.DataArray:
+    """Calculate Enhanced Normalised Difference Impervious Surfaces Index.
+
+    Based on Chen et al. 2019.
+    """
+
+    def mndwi(xds: xr.Dataset):
+        return (xds.sel(band="green") - xds.sel(band="swir16")) / (
+            xds.sel(band="green") + xds.sel(band="swir16")
+        )
+
+    def swir_diff(xds: xr.Dataset):
+        return xds.sel(band="swir16") / xds.sel(band="swir22")
+
+    def alpha(xds: xr.Dataset):
+        return (2 * (np.mean(xds.sel(band="blue")))) / (
+            np.mean(swir_diff(xds)) + np.mean(mndwi(xds) ** 2)
+        )
+
+    m = mndwi(xds)
+    s = swir_diff(xds)
+    a = alpha(xds)
+
+    return (xds.sel(band="blue") - (a) * (s + m**2)) / (xds.sel(band="blue") + (a) * (s + m**2))
