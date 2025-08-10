@@ -266,6 +266,7 @@ class Sentinel2Handler(BaseModel, DownloadHandler):
     max_cloud_cover: int = 25
     collection: str = "sentinel-2-l2a"
     resample_period: str | None = None
+    composite_method: str = "median"
 
     @field_validator("output_filename")
     @classmethod

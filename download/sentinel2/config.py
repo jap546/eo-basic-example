@@ -36,6 +36,9 @@ class Sentinel2Config(BaseModel):
     resample_period: str | None = Field(
         None, description="Time period to resample data to (e.g., 'quarterly')."
     )
+    composite_method: str = Field(
+        "median", description="The compositing method to use: 'median' or 'quartile'."
+    )
 
     output_filename: str = Field(..., description="Descriptive filename stem (without extension).")
 

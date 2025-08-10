@@ -23,11 +23,27 @@ class DataProcessor:
         self.config = config
         self.mask_generator = MaskGenerator()
 
+    def _process_to_median_composite(self, masked_data: xr.DataArray) -> xr.DataArray:
+        """Calculates a median composite from the masked data."""
+        return masked_data.median(dim="time", keep_attrs=True, skipna=True)
+
+    def _process_to_quartile_composite(self, masked_data: xr.DataArray) -> xr.DataArray:
+        """Calculates a first-quartile composite and observation count."""
+        observations_band = masked_data.count(dim="time").max(dim="band")
+
+        observations_band = observations_band.expand_dims(band=["observations"])
+
+        quartile_composite = masked_data.quantile(0.25, dim="time", skipna=True) * 10000
+
+        final_composite = xr.concat([quartile_composite, observations_band], dim="band")
+
+        return final_composite.fillna(-32768).astype("int32")
+
     def process_to_composite(
         self, items: ItemCollection, search_bbox: BoundingBox, clip_gdf: gpd.GeoDataFrame | None
     ) -> xr.DataArray | None:
         """
-        Takes STAC items and produces a computed, cloud-masked, median composite.
+        Takes STAC items, masks them, and produces a final composite based on the configured method.
         """
         target_bounds = search_bbox.reproject(
             from_crs=self.config.source_crs,
@@ -54,8 +70,13 @@ class DataProcessor:
         scl_mask = data.sel(band="SCL").isin(SCL_GOOD_PIXELS)
         masked_data = data.where(scl_mask).sel(band=band_codes)
 
-        print("Computing composite...")
-        composite = masked_data.median(dim="time", keep_attrs=True, skipna=True)
+        if self.config.composite_method == "quartile":
+            print("Computing quartile composite...")
+            composite = self._process_to_quartile_composite(masked_data)
+        else:
+            print("Computing median composite...")
+            composite = self._process_to_median_composite(masked_data)
+
         with dask.diagnostics.ProgressBar():
             computed: xr.DataArray = composite.compute()
 
