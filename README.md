@@ -43,7 +43,7 @@ Then to download data, run:
 download
 ```
 
-This will download all data within `download_config.json` to local disk.
+This will download all data within `download_config.json` to local disk which may take awhile.
 
 We download the [Combined Authorities (Generalised) boundaries](https://geoportal.statistics.gov.uk/datasets/ons::combined-authorities-may-2025-boundaries-en-bgc/about) from Office for National Statistics. We filter for Greater Manchester and use this data to create a mask for our Sentinel-2 data.
 
