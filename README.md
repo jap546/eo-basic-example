@@ -37,7 +37,7 @@ Activate the environment:
 source .venv/bin/activate
 ```
 
-To download data, run:
+Then to download data, run:
 
 ```zsh
 download
@@ -47,7 +47,7 @@ This will download all data within `download_config.json` to local disk.
 
 We download the [Combined Authorities (Generalised) boundaries](https://geoportal.statistics.gov.uk/datasets/ons::combined-authorities-may-2025-boundaries-en-bgc/about) from Office for National Statistics. We filter for Greater Manchester and use this data to create a mask for our Sentinel-2 data.
 
-Raster data is downloaded from the [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) STAC catalog. We use [`stackstac`](https://stackstac.readthedocs.io/en/latest/) which turns a STAC collection into a lazy `xarray.DataArray` using [`dask`](https://docs.dask.org/en/latest/array.html). We filter for good pixels within the Scene Classification Layer, then create a composite image by calculating the first quartile and multiplied by 10,000 for every pixel, similar to the [Copernicus quarterly mosaics](https://documentation.dataspace.copernicus.eu/Data/SentinelMissions/Sentinel2.html#algorithm).
+Raster data is downloaded from the [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) STAC catalog. We use [`stackstac`](https://stackstac.readthedocs.io/en/latest/) which turns a STAC collection into a lazy `xarray.DataArray` using [`dask`](https://docs.dask.org/en/latest/array.html). We filter for good pixels within the Scene Classification Layer, then create a composite image by calculating a simple median for every pixel.
 
 ---
 
