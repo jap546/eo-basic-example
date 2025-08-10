@@ -24,9 +24,14 @@ install: ## Install the virtual environment and install the pre-commit hooks
 	@uv sync --all-groups
 	@echo "$(BLUE) > Installing pre-commit hooks...$(ENDC)"
 	@uvx pre-commit install
-	@echo "$(BLUE) > Ensuring project directories exist...$(ENDC)"
-	@uv run setup-folders
 	@echo "$(GREEN)✅ Install complete! Activate the venv with: source .venv/bin/activate$(ENDC)"
+
+.PHONY: setup
+setup: ## Setup project directories etc.
+	@echo "$(PURPLE)--- 🚀 Setting up project structure ---$(ENDC)"
+	@echo "$(BLUE) > Ensuring project directories exist...$(ENDC)"
+	@uv run setup
+	@echo "$(GREEN)✅ Setup complete!$(ENDC)"
 
 .PHONY: check
 check: ## Run code quality tools.
@@ -37,6 +42,8 @@ check: ## Run code quality tools.
 	@uvx pre-commit run -a
 	@echo "$(BLUE) > Static type checking with mypy...$(ENDC)"
 	@uvx mypy --config-file .github/linters/.mypy.ini .
+	@echo "$(BLUE) > Running noxfile...$(ENDC)"
+	@uvx nox
 	@echo "$GREEN)✅ All checks passed!$(ENDC)"
 
 .PHONY: test
