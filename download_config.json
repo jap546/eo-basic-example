@@ -41,7 +41,7 @@
           "max_cloud_cover": 25,
           "resample_period": "annual",
           "output_filename": "Manchester_annual",
-          "composite_method": "quartile"
+          "composite_method": "median"
         }
       }
     ]
